@@ -62,6 +62,11 @@ const CommunityVoice = dynamic(
   { ssr: false, loading: () => <VoiceSkeleton /> }
 );
 
+const SentinelActivityFeed = dynamic(
+  () => import('@/components/SentinelActivityFeed'),
+  { ssr: false, loading: () => <div className="h-64 glass-panel animate-pulse rounded-2xl" /> }
+);
+
 export default function CommunityPage() {
   return (
     <div className="min-h-screen bg-[#020617] relative overflow-x-hidden">
@@ -109,6 +114,14 @@ export default function CommunityPage() {
         {/* Section 2: Community Voice */}
         <section>
           <CommunityVoice />
+        </section>
+
+        {/* Divider */}
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+
+        {/* Section 3: Sentinel Activity Feed */}
+        <section>
+          <SentinelActivityFeed />
         </section>
 
         {/* Footer note */}

@@ -3,18 +3,33 @@ import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { getAIForecasts } from '@/lib/api';
 import { useSimulator } from '@/contexts/SimulatorContext';
-import { Sparkles, TrendingDown, DollarSign, Wallet } from 'lucide-react';
+import { Sparkles, TrendingDown, DollarSign, Wallet, Info } from 'lucide-react';
+import SentinelTooltip from '@/components/SentinelTooltip';
 
 export default function PolicySandboxPage() {
   const [policy, setPolicy] = useState('baseline');
-  const [data, setData] = useState<Record<string, unknown>[]>([]);
-  const { transportWeight, setTransportWeight, industrialWeight, setIndustrialWeight } = useSimulator();
+  const [data, setData] = useState<any[]>([]);
+  const { transportWeight, industrialWeight, setTransportWeight, setIndustrialWeight, getImpactWeights } = useSimulator();
+  const [showFormulaInfo, setShowFormulaInfo] = useState(false);
   
   const policies = ['baseline', 'EV Transition', 'Industrial Filter', 'Net Zero'];
 
   useEffect(() => {
-    getAIForecasts(policy).then(setData);
-  }, [policy]);
+    getAIForecasts(policy).then(baseData => {
+      const weights = getImpactWeights();
+      // Calculate weighted reduction: (1 - sliderValue) * sectorWeight
+      const tRed = (1 - transportWeight) * weights.transport;
+      const iRed = (1 - industrialWeight) * weights.industrial;
+      const totalRed = tRed + iRed;
+
+      const enrichedData = baseData.map(item => ({
+        ...item,
+        // If baseline, show actual co2_level. If policy, apply weighted reduction to the baseline's co2_level or forecast
+        forecast: policy === 'baseline' ? item.co2_level : Math.round(item.co2_level * (1 - totalRed))
+      }));
+      setData(enrichedData);
+    });
+  }, [policy, transportWeight, industrialWeight, getImpactWeights]);
 
   const handleSolveFor2030 = () => {
     // AI Solver: Move sliders to minimum req for Net Zero
@@ -32,7 +47,7 @@ export default function PolicySandboxPage() {
     <div className="h-full w-full animate-fade-in flex flex-col gap-6 z-10 relative">
       <header className="mb-2">
         <h1 className="text-3xl font-bold text-slate-100">AI Policy Sandbox</h1>
-        <p className="text-slate-400 mt-1">Simulate the impact of environmental policies on Delhi&apos;s forecasted emissions</p>
+        <p className="text-white mt-1">Simulate the impact of environmental policies on Delhi&apos;s forecasted emissions</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 max-h-[75vh]">
@@ -42,6 +57,25 @@ export default function PolicySandboxPage() {
             <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
               <span className="w-1.5 h-6 bg-blue-500 rounded-full"></span>
               Policy Parameters
+              <SentinelTooltip
+                isVisible={showFormulaInfo}
+                formula="E_{new} = E_{base} \times (1 - \sum (\text{Slider}_n \times \text{Weight}_n))"
+                content={
+                  <div className="space-y-2">
+                    <p className="font-bold text-emerald-400 uppercase tracking-tighter text-[10px]">Sector-Based Weighting</p>
+                    <p>Slider impact is determined by land-use type (Industrial vs. Transport).</p>
+                    <p className="text-[10px] opacity-70 italic">Example: In Okhla, Industrial Filters have an 80% weight.</p>
+                  </div>
+                }
+              >
+                <button 
+                  onMouseEnter={() => setShowFormulaInfo(true)}
+                  onMouseLeave={() => setShowFormulaInfo(false)}
+                  className="text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  <Info className="w-4 h-4" />
+                </button>
+              </SentinelTooltip>
             </h3>
             <button 
               onClick={handleSolveFor2030}
@@ -102,7 +136,7 @@ export default function PolicySandboxPage() {
               <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
               Emission Forecast (2026 - 2030)
             </h3>
-            <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(16,185,129,0.2)] flex items-center gap-2">
+            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(16,185,129,0.2)] flex items-center gap-2 ${policy === 'baseline' ? "text-white/70 bg-slate-800/30 border border-slate-700/50" : "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"}`}>
               <Sparkles className="w-3 h-3 animate-pulse" />
               Model Confidence: 94%
             </div>

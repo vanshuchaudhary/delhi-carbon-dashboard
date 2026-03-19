@@ -5,6 +5,7 @@ import AuthSentinel from '@/components/AuthSentinel';
 import { SimulatorProvider } from '@/contexts/SimulatorContext';
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 import NotificationManager from '@/components/NotificationManager';
+import LiveEventToast from '@/components/LiveEventToast';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -86,6 +87,7 @@ export default function RootLayout({
         <ServiceWorkerRegistration />
         <SimulatorProvider>
           <NotificationManager />
+          <LiveEventToast />
           <AuthSentinel>
             {children}
           </AuthSentinel>

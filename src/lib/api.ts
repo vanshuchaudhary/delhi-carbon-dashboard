@@ -73,21 +73,38 @@ export async function getMapData(): Promise<FeatureCollection> {
   };
 }
 
-export async function getSectorBreakdown() {
+export async function getSectorBreakdown(wardName?: string | null) {
    try {
-     const { data, error } = await supabase.from('real_time_emissions').select('sector, co2_level');
+     let query = supabase.from('real_time_emissions').select('sector, co2_level');
+     if (wardName) {
+        // In a real schema, we'd filter by ward_id or join with wards
+        // For now, we'll fetch all and simulate if a ward is selected
+     }
+     const { data, error } = await query;
      if (!error && data && data.length > 0) {
         return data; 
      }
    } catch {}
-   // Mock fallback
-   return [
+   
+   // Mock fallback with ward-specific variation
+   const base = [
      { sector: 'Transport', co2_level: 450.5 },
      { sector: 'Industry', co2_level: 680.1 },
      { sector: 'Power', co2_level: 520.4 },
      { sector: 'Residential', co2_level: 300.2 },
      { sector: 'Waste', co2_level: 150.0 },
    ];
+
+   if (wardName) {
+      // Seed variation based on ward name
+      const seed = wardName.length;
+      return base.map(s => ({
+         ...s,
+         co2_level: Math.round(s.co2_level * (0.8 + (seed % 5) * 0.1))
+      }));
+   }
+
+   return base;
 }
 
 export async function getAIForecasts(policyScenario: string = 'baseline') {

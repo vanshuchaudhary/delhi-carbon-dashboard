@@ -7,9 +7,15 @@ import { Shield } from 'lucide-react';
 import { Toaster } from 'sonner';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import SentinelBriefing from '@/components/SentinelBriefing';
+import { useSimulator } from '@/contexts/SimulatorContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { twMerge } from 'tailwind-merge';
+import WelcomeModal from '@/components/WelcomeModal';
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, loading, isGuest } = useAuth();
+  const { isSidebarMini } = useSimulator();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -58,11 +64,31 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen relative overflow-hidden bg-slate-950">
+      {/* Global Cyber-Grid */}
+      <div className="fixed inset-0 cyber-grid z-0 opacity-40 pointer-events-none" />
+      
       {pathname !== '/login' && <Sidebar />}
       {pathname !== '/login' && <Header />}
-      <main className={`flex-1 ${pathname !== '/login' ? 'md:ml-80' : ''} min-h-screen relative overflow-hidden transition-all duration-300`}>
-        {children}
+      {pathname !== '/login' && <SentinelBriefing />}
+      {pathname !== '/login' && <WelcomeModal />}
+
+      <main className={twMerge(
+        "flex-1 min-h-screen relative z-10 transition-all duration-500 ease-in-out",
+        pathname === '/login' ? "" : isSidebarMini ? "md:ml-20" : "md:ml-80"
+      )}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, x: 20, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="h-full"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
