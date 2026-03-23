@@ -28,13 +28,13 @@ export default function SectorBreakdownPage() {
         <Map />
       </div>
 
-      <div className="h-full w-full flex flex-col gap-6 z-10 relative pointer-events-none p-4 pb-20 sm:p-6 lg:p-8 overflow-y-auto">
-        <header className="mb-2 pointer-events-none">
-          <h1 className="text-3xl font-bold text-white drop-shadow-md">
-            {activeWard ? `Sector Breakdown: ${activeWard}` : 'City-Wide Sector Breakdown'}
+    <div className="h-full w-full flex flex-col gap-8 z-10 relative pointer-events-none p-4 pb-20 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
+        <header className="sticky top-0 z-[40] bg-[#0a0a0a]/90 backdrop-blur-md py-6 mb-2 border-b border-white/5 pointer-events-none">
+          <h1 className="text-3xl font-black text-white drop-shadow-md uppercase tracking-tighter">
+            {activeWard ? `Sector Breakdown: ${activeWard}` : 'City-Wide Analytics'}
           </h1>
-          <p className="text-white mt-1 opacity-90 drop-shadow-md">
-            {activeWard ? `Localized emissions profile for ${activeWard} zone` : 'Analytics and historical carbon emissions by industry in Delhi'}
+          <p className="text-emerald-500 text-xs font-bold uppercase tracking-[0.2em] mt-1 drop-shadow-md">
+            {activeWard ? `Localized emissions profile for ${activeWard} zone` : 'Delhi Carbon Sentinel Analytics Engine'}
           </p>
         </header>
 

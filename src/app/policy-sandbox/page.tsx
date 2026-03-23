@@ -1,35 +1,45 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { getAIForecasts } from '@/lib/api';
 import { useSimulator } from '@/contexts/SimulatorContext';
 import { Sparkles, TrendingDown, DollarSign, Wallet, Info } from 'lucide-react';
 import SentinelTooltip from '@/components/SentinelTooltip';
+import { POLICY_IMPL_FACTORS } from '@/lib/simulationConstants';
 
 export default function PolicySandboxPage() {
   const [policy, setPolicy] = useState('baseline');
-  const [data, setData] = useState<any[]>([]);
-  const { transportWeight, industrialWeight, setTransportWeight, setIndustrialWeight, getImpactWeights } = useSimulator();
+  const [baselineData, setBaselineData] = useState<any[]>([]);
+  const { transportWeight, industrialWeight, setTransportWeight, setIndustrialWeight, getImpactWeights, activeWard } = useSimulator();
   const [showFormulaInfo, setShowFormulaInfo] = useState(false);
   
   const policies = ['baseline', 'EV Transition', 'Industrial Filter', 'Net Zero'];
 
   useEffect(() => {
-    getAIForecasts(policy).then(baseData => {
-      const weights = getImpactWeights();
-      // Calculate weighted reduction: (1 - sliderValue) * sectorWeight
-      const tRed = (1 - transportWeight) * weights.transport;
-      const iRed = (1 - industrialWeight) * weights.industrial;
-      const totalRed = tRed + iRed;
+    getAIForecasts('baseline').then(setBaselineData);
+  }, []);
 
-      const enrichedData = baseData.map(item => ({
-        ...item,
-        // If baseline, show actual co2_level. If policy, apply weighted reduction to the baseline's co2_level or forecast
-        forecast: policy === 'baseline' ? item.co2_level : Math.round(item.co2_level * (1 - totalRed))
-      }));
-      setData(enrichedData);
-    });
-  }, [policy, transportWeight, industrialWeight, getImpactWeights]);
+  const chartData = useMemo(() => {
+    if (!baselineData.length) return [];
+    
+    const weights = getImpactWeights();
+    const policyFactor = POLICY_IMPL_FACTORS[policy as keyof typeof POLICY_IMPL_FACTORS] || 1.0;
+    
+    // Okhla Special Logic: Double industrial impact if ward is Okhla and policy is Industrial Filter
+    let effectivePolicyFactor = policyFactor;
+    if (policy === 'Industrial Filter' && activeWard === 'Okhla') {
+      effectivePolicyFactor *= 0.6; // Stronger reduction
+    }
+
+    const tRed = (1 - transportWeight) * weights.transport;
+    const iRed = (1 - industrialWeight) * weights.industrial;
+    const sliderReduction = tRed + iRed;
+
+    return baselineData.map(item => ({
+      ...item,
+      forecast: Math.round(item.co2_level * effectivePolicyFactor * (1 - sliderReduction))
+    }));
+  }, [policy, baselineData, transportWeight, industrialWeight, getImpactWeights, activeWard]);
 
   const handleSolveFor2030 = () => {
     // AI Solver: Move sliders to minimum req for Net Zero
@@ -143,7 +153,7 @@ export default function PolicySandboxPage() {
           </div>
           <div className="flex-1 min-h-[400px]" style={{ color: '#94a3b8' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+              <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="year" stroke="#64748b" tick={{fill: '#94a3b8'}} axisLine={false} tickLine={false} />
                 <YAxis stroke="#64748b" tick={{fill: '#94a3b8'}} axisLine={false} tickLine={false} />
@@ -154,7 +164,18 @@ export default function PolicySandboxPage() {
                 <ReferenceLine y={0} stroke="#10b981" strokeWidth={2} strokeDasharray="3 3" label={{ value: 'NET ZERO', position: 'insideBottomRight', fill: '#10b981', fontSize: 10, fontWeight: 'bold' }} />
                 <Line type="monotone" dataKey="co2_level" name="Historical/Baseline" stroke="#f43f5e" strokeWidth={3} dot={{r: 4, fill: '#f43f5e', strokeWidth: 2, stroke:'#0f172a'}} activeDot={{r: 6}} />
                 {policy !== 'baseline' && (
-                  <Line type="monotone" dataKey="forecast" name={`Forecast: ${policy}`} stroke={policy === 'Net Zero' ? '#8b5cf6' : '#10b981'} strokeWidth={4} strokeDasharray="5 5" dot={{r: 4, fill: policy === 'Net Zero' ? '#8b5cf6' : '#10b981', strokeWidth: 2, stroke:'#0f172a'}} activeDot={{r: 8, strokeWidth: 0}} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="forecast" 
+                    name={`Forecast: ${policy}`} 
+                    stroke={policy === 'Net Zero' ? '#8b5cf6' : '#10b981'} 
+                    strokeWidth={4} 
+                    strokeDasharray="5 5" 
+                    dot={{r: 4, fill: policy === 'Net Zero' ? '#8b5cf6' : '#10b981', strokeWidth: 2, stroke:'#0f172a'}} 
+                    activeDot={{r: 8, strokeWidth: 0}}
+                    isAnimationActive={true}
+                    animationDuration={500}
+                  />
                 )}
               </LineChart>
             </ResponsiveContainer>

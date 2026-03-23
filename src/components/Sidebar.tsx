@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useSimulator } from '@/contexts/SimulatorContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { UserButton } from '@clerk/nextjs';
 import { twMerge } from 'tailwind-merge';
 import clsx from 'clsx';
 import NotificationSettingsModal from './NotificationSettingsModal';
@@ -52,7 +53,7 @@ export default function Sidebar() {
     isSidebarMini, setIsSidebarMini, getImpactWeights,
     simulatedReduction, co2Removed, isSimulating
   } = useSimulator();
-  const { user, isGuest, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRankOpen, setIsRankOpen] = useState(false);
@@ -103,14 +104,14 @@ export default function Sidebar() {
       />
 
       <aside className={twMerge(
-        "fixed left-0 top-0 h-screen z-[55] transition-all duration-500 md:translate-x-0 bg-slate-900/60 backdrop-blur-2xl border-r border-slate-800/50 flex flex-col",
+        "fixed left-0 top-0 h-screen z-[90] transition-all duration-500 md:translate-x-0 bg-slate-900/60 backdrop-blur-2xl border-r border-slate-800/50 flex flex-col",
         isOpen ? "translate-x-0" : "-translate-x-full",
         isSidebarMini ? "w-20" : "w-80"
       )}>
         <div className={twMerge("p-6 flex flex-col h-full overflow-y-auto custom-scrollbar overflow-x-hidden", isSidebarMini && "p-4 items-center")}>
           <div className={twMerge("flex items-center gap-3 mb-8 transition-all", isSidebarMini ? "justify-center" : "")}>
-            <div className="p-2 bg-emerald-500 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] flex-shrink-0">
-              <Shield className="w-6 h-6 text-slate-950" />
+            <div className="w-10 h-10 bg-slate-900 border border-emerald-500/30 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.2)] flex-shrink-0 flex items-center justify-center p-1.5 overflow-hidden">
+              <img src="/sentinel-logo.png" alt="Sentinel Logo" className="w-full h-full object-contain" />
             </div>
             {!isSidebarMini && (
               <div className="animate-in fade-in slide-in-from-left-2 duration-300">
@@ -252,29 +253,27 @@ export default function Sidebar() {
               {!isSidebarMini && <span>Toggle Mini Mode</span>}
             </button>
 
-            {user && (
-              <div className={twMerge("flex items-center justify-between p-3 bg-slate-950/50 border border-slate-800 rounded-2xl", isSidebarMini && "justify-center p-2")}>
-                <button 
-                  onClick={() => setIsRankOpen(true)}
-                  className="flex items-center gap-3 overflow-hidden text-left hover:scale-105 active:scale-95 transition-transform"
-                >
-                  <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 flex-shrink-0">
-                    <UserIcon className="w-4 h-4 text-slate-400" />
-                  </div>
-                  {!isSidebarMini && (
-                    <div className="overflow-hidden">
-                      <p className="text-[10px] font-bold text-slate-200 truncate uppercase">{user.email?.split('@')[0]}</p>
-                      <p className="text-[8px] text-emerald-500 font-bold uppercase tracking-widest">{isGuest ? 'Guest Envoy' : userTier}</p>
-                    </div>
-                  )}
-                </button>
-                {!isSidebarMini && (
-                  <button onClick={handleSignOut} className="p-2 hover:bg-rose-500/10 rounded-lg group transition-colors">
-                    <LogOut className="w-3.5 h-3.5 text-slate-500 group-hover:text-rose-500" />
-                  </button>
-                )}
+            <div className={twMerge(
+              "flex items-center gap-3 p-3 bg-slate-950/50 border border-slate-800 rounded-2xl transition-all",
+              isSidebarMini ? "justify-center" : ""
+            )}>
+              <div className="flex-shrink-0">
+                <UserButton 
+                  appearance={{
+                    elements: {
+                      userButtonAvatarBox: "w-8 h-8 rounded-lg border border-emerald-500/30",
+                      userButtonTrigger: "focus:shadow-none focus:outline-none"
+                    }
+                  }}
+                />
               </div>
-            )}
+              {!isSidebarMini && (
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-[10px] font-bold text-slate-200 truncate uppercase tracking-tighter">Sentinel Authorized</p>
+                  <p className="text-[8px] text-emerald-500 font-bold uppercase tracking-widest">Active Profile</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </aside>

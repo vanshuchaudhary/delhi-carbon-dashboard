@@ -13,36 +13,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import WelcomeModal from '@/components/WelcomeModal';
 
+import { useAuth as useClerkAuth, RedirectToSignIn } from '@clerk/nextjs';
+
 function AuthWrapper({ children }: { children: React.ReactNode }) {
-  const { user, loading, isGuest } = useAuth();
+  const { loading } = useAuth(); // legacy/shim loading
+  const { isLoaded, isSignedIn } = useClerkAuth();
   const { isSidebarMini } = useSimulator();
-  const router = useRouter();
   const pathname = usePathname();
 
-  const didRequestNotif = useRef(false);
-
-  // Request notification permission exactly once after first authenticated login
-  useEffect(() => {
-    if (
-      user &&
-      !isGuest &&
-      !didRequestNotif.current &&
-      typeof window !== 'undefined' &&
-      'Notification' in window &&
-      Notification.permission === 'default'
-    ) {
-      didRequestNotif.current = true;
-      Notification.requestPermission();
-    }
-  }, [user, isGuest]);
-
-  useEffect(() => {
-    if (!loading && !user && !isGuest && pathname !== '/login') {
-      router.push('/login');
-    }
-  }, [user, loading, isGuest, pathname, router]);
-
-  if (loading && pathname !== '/login') {
+  // Handle loading state: either shim loading or clerk loading
+  if ((loading || !isLoaded) && pathname !== '/login') {
     return (
       <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-[100]">
         <div className="relative">
@@ -52,7 +32,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
           <div className="absolute -inset-4 border border-emerald-500/20 rounded-[40px] animate-ping duration-[3000ms]" />
         </div>
         <div className="mt-8 flex flex-col items-center gap-2">
-          <h2 className="text-emerald-500 font-black uppercase tracking-[0.4em] text-sm tracking-widest">Loading Sentinel</h2>
+          <h2 className="text-emerald-500 font-black uppercase tracking-[0.4em] text-sm tracking-widest">Identifying Sentinel</h2>
           <div className="flex gap-1">
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
@@ -63,35 +43,45 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
-    <div className="flex min-h-screen relative overflow-hidden bg-slate-950">
-      {/* Global Cyber-Grid */}
-      <div className="fixed inset-0 cyber-grid z-0 opacity-40 pointer-events-none" />
-      
-      {pathname !== '/login' && <Sidebar />}
-      {pathname !== '/login' && <Header />}
-      {pathname !== '/login' && <SentinelBriefing />}
-      {pathname !== '/login' && <WelcomeModal />}
+  // Handle unauthenticated state
+  if (!isSignedIn && pathname !== '/login') {
+    return <RedirectToSignIn />;
+  }
 
-      <main className={twMerge(
-        "flex-1 min-h-screen relative z-10 transition-all duration-500 ease-in-out",
-        pathname === '/login' ? "" : isSidebarMini ? "md:ml-20" : "md:ml-80"
-      )}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, x: 20, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="h-full"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-    </div>
-  );
+  // Authenticated Dashboard Layout
+  if (isSignedIn && pathname !== '/login') {
+    return (
+      <div className="flex min-h-screen relative overflow-hidden bg-slate-950">
+        <div className="fixed inset-0 cyber-grid z-0 opacity-40 pointer-events-none" />
+        
+        <Sidebar />
+        <Header />
+        <SentinelBriefing />
+        <WelcomeModal />
+
+        <main className={twMerge(
+          "flex-1 min-h-screen relative z-10 transition-all duration-500 ease-in-out pt-[80px]",
+          isSidebarMini ? "md:ml-20" : "md:ml-80"
+        )}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, x: 20, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="h-full"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+    );
+  }
+
+  // Fallback for public routes
+  return <>{children}</>;
 }
 
 export default function AuthSentinel({ children }: { children: React.ReactNode }) {

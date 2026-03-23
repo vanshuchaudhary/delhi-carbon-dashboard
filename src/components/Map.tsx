@@ -775,7 +775,7 @@ export default function Map() {
 
 
   return (
-    <div className="w-full h-full relative group rounded-2xl overflow-hidden glass-panel border border-slate-800/50 shadow-2xl">
+    <div className="w-full h-full relative group rounded-2xl overflow-hidden glass-panel border border-slate-800/50 shadow-2xl z-0">
       {/* Map Container */}
       <div ref={mapContainer} className="absolute inset-0 w-full h-full bg-slate-900" />
 

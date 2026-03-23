@@ -74,25 +74,40 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+import { ClerkProvider } from '@clerk/nextjs';
+import { dark } from '@clerk/themes';
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-      >
-        <ServiceWorkerRegistration />
-        <SimulatorProvider>
-          <NotificationManager />
-          <LiveEventToast />
-          <AuthSentinel>
-            {children}
-          </AuthSentinel>
-        </SimulatorProvider>
-      </body>
-    </html>
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        variables: {
+          colorPrimary: '#10b981',
+          colorBackground: '#0a0a0a',
+          colorInputBackground: '#111827',
+          colorInputText: '#fff',
+        }
+      }}
+    >
+      <html lang="en" className="dark">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        >
+          <ServiceWorkerRegistration />
+          <SimulatorProvider>
+            <NotificationManager />
+            <LiveEventToast />
+            <AuthSentinel>
+              {children}
+            </AuthSentinel>
+          </SimulatorProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

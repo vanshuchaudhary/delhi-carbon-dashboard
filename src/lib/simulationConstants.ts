@@ -103,3 +103,10 @@ export const VEHICLE_FACTORS = {
 
 export const METRO_EMISSION_FACTOR = 15; // g/km per passenger (approx)
 export const TREE_DAILY_ABSORPTION_G = 59.7; // grams/day
+
+export const POLICY_IMPL_FACTORS = {
+  baseline: 1.0,
+  'EV Transition': 0.82,
+  'Industrial Filter': 0.75,
+  'Net Zero': 0.15,
+};
