@@ -51,7 +51,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   // Authenticated Dashboard Layout
   if (isSignedIn && pathname !== '/login') {
     return (
-      <div className="flex min-h-screen relative overflow-hidden bg-slate-950">
+      <div className="flex min-h-screen relative overflow-x-hidden bg-slate-950">
         <div className="fixed inset-0 cyber-grid z-0 opacity-40 pointer-events-none" />
         
         <Sidebar />

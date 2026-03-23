@@ -108,8 +108,11 @@ export default function Sidebar() {
         isOpen ? "translate-x-0" : "-translate-x-full",
         isSidebarMini ? "w-20" : "w-80"
       )}>
-        <div className={twMerge("p-6 flex flex-col h-full overflow-y-auto custom-scrollbar overflow-x-hidden", isSidebarMini && "p-4 items-center")}>
-          <div className={twMerge("flex items-center gap-3 mb-8 transition-all", isSidebarMini ? "justify-center" : "")}>
+        {/* ── 3-zone layout: pinned header | scrollable middle | pinned footer ── */}
+        <div className={twMerge("flex flex-col h-full overflow-hidden", isSidebarMini && "items-center")}>
+          {/* ── Pinned Header ── */}
+          <div className={twMerge("flex-shrink-0 px-6 pt-6 pb-4", isSidebarMini && "px-4 pt-4 flex flex-col items-center")}>
+          <div className={twMerge("flex items-center gap-3 transition-all", isSidebarMini ? "justify-center" : "")}>  
             <div className="w-10 h-10 bg-slate-900 border border-emerald-500/30 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.2)] flex-shrink-0 flex items-center justify-center p-1.5 overflow-hidden">
               <img src="/sentinel-logo.png" alt="Sentinel Logo" className="w-full h-full object-contain" />
             </div>
@@ -120,7 +123,10 @@ export default function Sidebar() {
               </div>
             )}
           </div>
+          </div>{/* /Pinned Header */}
 
+          {/* ── Scrollable Middle (nav + simulator) ── */}
+          <div className={twMerge("flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-6 pb-4", isSidebarMini && "px-4 flex flex-col items-center w-full")}>
           <nav className="flex flex-col gap-2 mb-8 w-full">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -240,8 +246,10 @@ export default function Sidebar() {
               </div>
             </div>
           )}
+          </div>{/* /Scrollable Middle */}
 
-          <div className="mt-auto pt-6 border-t border-slate-800/60 flex flex-col gap-4 w-full">
+          {/* ── Pinned Footer ── */}
+          <div className={twMerge("flex-shrink-0 px-6 pt-4 pb-6 border-t border-slate-800/60 flex flex-col gap-4 w-full", isSidebarMini && "px-4 items-center")}>
             <button 
               onClick={() => setIsSidebarMini(!isSidebarMini)}
               className={twMerge(
@@ -274,8 +282,8 @@ export default function Sidebar() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </div>{/* /Pinned Footer */}
+        </div>{/* /3-zone layout */}
       </aside>
     </>
   );

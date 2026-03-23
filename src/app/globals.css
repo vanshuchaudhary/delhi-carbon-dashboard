@@ -29,6 +29,30 @@ body {
   padding: 0;
 }
 
+/* ── Neon Custom Scrollbar ─────────────────────────────────────────
+ * Matches the dark-mode cyber aesthetic — thin rail, emerald thumb,
+ * a faint neon glow on hover. Applied via .custom-scrollbar class.
+ * ────────────────────────────────────────────────────────────── */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.35) transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.35);
+  border-radius: 999px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.7);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
 @layer utilities {
   .glass-panel {
     background: rgba(15, 23, 42, 0.7);

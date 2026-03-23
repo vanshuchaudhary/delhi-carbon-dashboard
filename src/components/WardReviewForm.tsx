@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Star, Send, Loader2, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useAuth } from '@clerk/nextjs';
 
 interface Review {
   id: string;
@@ -19,6 +19,7 @@ interface WardReviewFormProps {
 }
 
 export default function WardReviewForm({ wardName }: WardReviewFormProps) {
+  const { getToken } = useAuth();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,15 +33,11 @@ export default function WardReviewForm({ wardName }: WardReviewFormProps) {
   const fetchReviews = async () => {
     setFetching(true);
     try {
-      const { data, error } = await supabase
-        .from('ward_reviews')
-        .select('*')
-        .eq('ward_name', wardName)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const res = await fetch(`/api/reviews?wardName=${encodeURIComponent(wardName)}`);
+      if (!res.ok) throw new Error(`Failed to fetch reviews (${res.status})`);
+      const data = await res.json();
       setReviews(data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching reviews:', err);
     } finally {
       setFetching(false);
@@ -49,32 +46,56 @@ export default function WardReviewForm({ wardName }: WardReviewFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
+    if (!comment.trim()) {
+      toast.warning('Please write a comment before submitting.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error('You must be logged in to leave a review.');
-        setLoading(false);
+      // Get the Clerk session JWT — required by the /api/reviews route
+      const token = await getToken();
+      if (!token) {
+        toast.error('Authentication Error', {
+          description: 'No active session found. Please sign in again.',
+        });
         return;
       }
 
-      const { error } = await supabase.from('ward_reviews').insert({
-        user_id: user.id,
-        ward_name: wardName,
-        rating,
-        comment
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ wardName, rating, comment: comment.trim() }),
       });
 
-      if (error) throw error;
+      const json = await res.json();
 
-      toast.success('Review submitted successfully!');
+      if (!res.ok) {
+        // Surface the server's error message directly in the toast
+        const label =
+          res.status === 401 ? '401 Unauthorized' :
+          res.status === 400 ? '400 Bad Request' :
+          `${res.status} Server Error`;
+        toast.error(label, { description: json.error || 'Unknown error.' });
+        return;
+      }
+
+      toast.success('Review submitted!', {
+        description: `Your ${rating}-star review for ${wardName} has been saved.`,
+      });
       setComment('');
       setRating(5);
       fetchReviews();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to submit review');
+      // Network-level failures (no response at all)
+      console.error('[WardReviewForm] submit error:', err);
+      toast.error('Network Error', {
+        description: err.message || 'Could not reach the server. Check your connection.',
+      });
     } finally {
       setLoading(false);
     }

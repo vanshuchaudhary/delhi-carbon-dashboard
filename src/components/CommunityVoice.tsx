@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuth as useClerkAuth } from '@clerk/nextjs';
 import { Heart, Star, Send, Loader2, MessageSquare, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { twMerge } from 'tailwind-merge';
@@ -142,6 +143,7 @@ function ReviewCard({
 /* ─── Main Component ──────────────────────────────────────────────────────── */
 export default function CommunityVoice() {
   const { user, isGuest } = useAuth();
+  const { getToken } = useClerkAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
   const [rating, setRating] = useState(0);
@@ -152,7 +154,7 @@ export default function CommunityVoice() {
   const loadReviews = useCallback(async () => {
     setLoadingReviews(true);
     const { data, error } = await supabase
-      .from('reviews')
+      .from('community_reviews')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(50);
@@ -187,8 +189,8 @@ export default function CommunityVoice() {
   // Subscribe to real-time inserts
   useEffect(() => {
     const channel = supabase
-      .channel('reviews-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reviews' }, () => {
+      .channel('community-reviews-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_reviews' }, () => {
         loadReviews();
       })
       .subscribe();
@@ -201,22 +203,52 @@ export default function CommunityVoice() {
     if (rating === 0) { toast.error('Please select a star rating.'); return; }
     if (comment.trim().length < 10) { toast.error('Comment must be at least 10 characters.'); return; }
 
-    setSubmitting(true);
-    const { error } = await supabase.from('reviews').insert({
-      user_id: user.id,
-      rating,
-      comment: comment.trim(),
-      upvotes: 0,
-    });
+    // ── DEBUG: verify state values before sending ──────────────────────────
+    console.log('[Submit] State snapshot → rating:', rating, '| comment:', comment.trim());
 
-    if (error) {
-      toast.error('Failed to submit review: ' + error.message);
-    } else {
-      toast.success('🌱 Review submitted! Thank you, Sentinel.');
-      setRating(0);
-      setComment('');
+    setSubmitting(true);
+    try {
+      // ── DEBUG step 1: get a fresh Clerk JWT ──────────────────────────────
+      const token = await getToken();
+      console.log('[Submit] Token:', token ?? '⚠ NULL — Clerk session may have expired');
+
+      const payload = { rating, comment: comment.trim() };
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      };
+
+      // ── DEBUG step 2: log exact request before it leaves the browser ─────
+      console.log('[Submit] POST /api/reviews');
+      console.log('[Submit] Headers:', headers);
+      console.log('[Submit] Body:', JSON.stringify(payload));
+
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      // ── DEBUG step 3: log raw status before parsing body ─────────────────
+      console.log('[Submit] Response status:', res.status, res.statusText);
+
+      const data = await res.json();
+      console.log('[Submit] Response body:', data);
+
+      if (!res.ok) {
+        toast.error(`Failed to submit (${res.status}): ${data.error ?? res.statusText}`);
+      } else {
+        toast.success('🌱 Review submitted! Thank you, Sentinel.');
+        setRating(0);
+        setComment('');
+        loadReviews(); // re-fetch so the new review appears immediately
+      }
+    } catch (err) {
+      console.error('[Submit] Network/parse error:', err);
+      toast.error('Network error — please try again.');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const handleUpvote = async (reviewId: string) => {
